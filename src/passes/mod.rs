@@ -1,0 +1,91 @@
+pub mod pass_imports;
+
+use super::app::App;
+use crate::treesitter;
+use std::fmt;
+use std::rc::Rc;
+use tree_sitter::Node as TSNode;
+
+/// Outcomes for test frameworks defined at POSIX 1003.3.
+/// See: POSIX 1003.3: 1.4 A POSIX compliant test framework.
+#[derive(Debug)]
+pub enum TestOutcome {
+    /// Test succeeds
+    PASS,
+    /// Test produced a failure
+    FAIL,
+    /// Test produced intermediate results
+    UNRESOLVED,
+}
+
+impl fmt::Display for TestOutcome {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
+pub trait Pass<'a> {
+    /// Returns absolute path to the temporary file created for this pass.
+    fn next_temp_file(&self) -> String;
+
+    /// Returns temporary directory used by this pass.
+    fn temp_dir(&self) -> String;
+
+    /// Returns name of this pass.
+    fn name(&self) -> String;
+
+    /// Returns application configuration used by this pass.
+    fn app(&self) -> &App;
+
+    /// Returns the original source code of the program.
+    fn original_source(&self) -> String;
+
+    /// Returns tree-sitter parser.
+    fn language(&self) -> Rc<dyn treesitter::Parser>;
+
+    /// Returns the result of the execution of the check script. The source code for test will be
+    /// generated from the given `source_code`, from which the `removed_nodes` are removed.
+    fn test_nodes(
+        &self,
+        source_code: &str,
+        removed_nodes: &Vec<TSNode<'a>>,
+    ) -> Result<(TestOutcome, String), String> {
+        let source = match self.language().remove_nodes(source_code, removed_nodes) {
+            Ok(source) => source,
+            Err(err) => return Err(err),
+        };
+        self.test_source(&source)
+    }
+
+    /// Returns the result of the execution of the check script for the source code.
+    fn test_source(&self, source: &str) -> Result<(TestOutcome, String), String> {
+        let temp_file = self.next_temp_file();
+        let temp_file = temp_file.as_str();
+        match std::fs::write(temp_file, source) {
+            Err(_) => return Err("Cannot write to file".to_string()),
+            Ok(_) => (),
+        };
+        let result = run_command(self.app().script.as_str(), vec![&temp_file]);
+        log::debug!("File: {} Result: {}", &temp_file, &result);
+        Ok((result, source.to_string()))
+    }
+}
+
+/// Executes the given shell command and returns TestOutcome::PASS if it returns 0 return code.
+/// TODO: Add a timeout.
+fn run_command(script: &str, args: Vec<&str>) -> TestOutcome {
+    if let Ok(mut child) = std::process::Command::new(script).args(&args).spawn() {
+        match child.wait() {
+            Ok(s) => {
+                if s.success() {
+                    TestOutcome::PASS
+                } else {
+                    TestOutcome::FAIL
+                }
+            }
+            _ => TestOutcome::UNRESOLVED,
+        }
+    } else {
+        TestOutcome::UNRESOLVED
+    }
+}

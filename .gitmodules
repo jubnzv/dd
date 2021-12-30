@@ -1,0 +1,3 @@
+[submodule "third-party/tree-sitter-lua"]
+	path = third-party/tree-sitter-lua
+	url = https://github.com/tjdevries/tree-sitter-lua
