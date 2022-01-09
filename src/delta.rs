@@ -4,9 +4,9 @@ use crate::passes::{Pass, TestOutcome};
 use tree_sitter::Node as TSNode;
 
 /// Remove all nodes occurred in the `complement`, because they doesn't cause a fail.
-fn remove_complement<'a>(seq: &mut Vec<TSNode<'a>>, complement: &Vec<TSNode<'a>>) {
+fn remove_complement<'a>(seq: &mut Vec<TSNode<'a>>, complement: &[TSNode<'a>]) {
     let new_seq: Vec<TSNode> = seq.iter().fold(vec![], |mut acc, node| {
-        if !complement.contains(&node) {
+        if !complement.contains(node) {
             acc.push(*node);
         }
         acc
@@ -23,12 +23,12 @@ fn remove_complement<'a>(seq: &mut Vec<TSNode<'a>>, complement: &Vec<TSNode<'a>>
 /// This function implements the Minimizing Delta Debugging algorithm described in
 /// [Zeller et al, 2002](https://doi.org/10.1109/32.988498).
 pub fn ddmin<'a>(
-    seq: &Vec<TSNode<'a>>,
+    seq: &[TSNode<'a>],
     pass: &impl Pass<'a>,
 ) -> Result<(Vec<TSNode<'a>>, String), String> {
-    let mut source_code = pass.original_source().clone();
+    let mut source_code = pass.original_source();
     match pass.test_source(&source_code) {
-        Ok((TestOutcome::PASS, _)) => {
+        Ok((TestOutcome::Pass, _)) => {
             return Err("`test` succeeds for the given AST root".to_string())
         }
         Ok(_) => (),
@@ -36,7 +36,7 @@ pub fn ddmin<'a>(
     };
 
     let mut granularity = 2;
-    let mut seq = seq.clone();
+    let mut seq = seq.to_owned();
     while seq.len() >= 2 {
         let mut start: usize = 0;
         let subset_length: usize = (seq.len() / 2) as usize;
@@ -51,7 +51,7 @@ pub fn ddmin<'a>(
                     .map(|n| { crate::treesitter::node_source(&pass.original_source(), n) })
                     .collect::<Vec<String>>()
             );
-            if let Ok((TestOutcome::FAIL, new_source)) = pass.test_nodes(&source_code, &complement)
+            if let Ok((TestOutcome::Fail, new_source)) = pass.test_nodes(&source_code, &complement)
             {
                 remove_complement(&mut seq, &complement);
                 source_code = new_source;

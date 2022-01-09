@@ -27,11 +27,7 @@ pub trait Parser {
 
     /// Removes `nodes` from the given `source_code`. Returns the source code after this
     /// transformation.
-    fn remove_nodes<'a>(
-        &self,
-        source_code: &str,
-        nodes: &Vec<TSNode<'a>>,
-    ) -> Result<String, String>;
+    fn remove_nodes<'a>(&self, source_code: &str, nodes: &[TSNode<'a>]) -> Result<String, String>;
 
     /// Performs a tree-sitter query for previously set source code and collects matched
     /// tree-sitter nodes.
@@ -58,7 +54,7 @@ pub trait Parser {
                     .iter()
                     .filter(|c| !c.node.has_error())
                     .filter(filter)
-                    .map(|c| c.node.clone()),
+                    .map(|c| c.node),
             );
             acc.clone()
         })
@@ -110,11 +106,7 @@ impl Parser for Lua {
             .to_string()
     }
 
-    fn remove_nodes<'a>(
-        &self,
-        source_code: &str,
-        nodes: &Vec<TSNode<'a>>,
-    ) -> Result<String, String> {
+    fn remove_nodes<'a>(&self, source_code: &str, nodes: &[TSNode<'a>]) -> Result<String, String> {
         let nodes_to_remove: HashSet<TSNode<'a>> = HashSet::from_iter(nodes.iter().cloned());
         let mut removed_ranges = Vec::new();
         for node in self.tree.root_node().children(&mut self.tree.walk()) {

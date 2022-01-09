@@ -27,7 +27,7 @@ impl<'app> PassImports<'app> {
         Ok(PassImports {
             name: "PassImports".to_string(),
             app,
-            original_source: source_code.clone(),
+            original_source: source_code,
             ts_language,
         })
     }
@@ -46,7 +46,7 @@ impl<'app> PassImports<'app> {
                 .collect::<Vec<String>>()
         );
         match delta::ddmin(&require_nodes, self) {
-            Ok((nodes, source)) => Ok(source),
+            Ok((_, source)) => Ok(source),
             Err(err) => Err(err),
         }
     }
