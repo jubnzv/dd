@@ -1,0 +1,45 @@
+name: Test
+
+on:
+  pull_request:
+    branches:
+    - '*'
+  push:
+    branches:
+    - master
+
+jobs:
+  all:
+    name: All
+    strategy:
+      matrix:
+        os:
+        - ubuntu-latest
+        - macos-latest
+        - windows-2016
+    runs-on: ${{matrix.os}}
+    env:
+      RUSTFLAGS: --deny warnings
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Install Rust toolchain
+      uses: actions-rs/toolchain@v1
+      with:
+        components: clippy, rustfmt
+        override: true
+        toolchain: 1.57.0
+
+    - name: Format
+      run: cargo fmt --all -- --check
+
+    - name: Clippy
+      run: cargo clippy --all --all-targets
+
+    - name: Check Lockfile
+      run: |
+        cargo update --locked --package dd
+
+    - name: Test
+      run: cargo test --all
