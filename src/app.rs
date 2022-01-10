@@ -1,4 +1,4 @@
-pub struct Passes {
+pub struct PassesConfig {
     pub modules: bool,
     pub top_functions: bool,
 }
@@ -6,6 +6,7 @@ pub struct Passes {
 mod args {
     pub const SCRIPT: &str = "SCRIPT";
     pub const FILE: &str = "FILE";
+    pub const PASSES: &str = "PASSES";
     pub const OUTPUT: &str = "OUTPUT";
     pub const TIMEOUT: &str = "TIMEOUT";
     pub const FORCE: &str = "FORCE";
@@ -24,7 +25,7 @@ pub struct App {
     pub timeout: Option<u32>,
     pub force: bool,
     pub recursive: bool,
-    pub passes: Passes,
+    pub passes: PassesConfig,
 }
 
 /// Returns absolute path from the given `path`.
@@ -36,6 +37,31 @@ fn abs_path(path: &str) -> Result<String, String> {
         Ok(path) => Ok(path.into_os_string().into_string().unwrap()),
         Err(err) => Err(err.to_string()),
     }
+}
+
+/// Returns passes configuraiton based on the given CLI argument content.
+fn parse_passes(arg: Option<&str>) -> Result<PassesConfig, String> {
+    if arg.is_none() {
+        return Err("No passes enabled".to_string());
+    }
+    let mut passes = PassesConfig {
+        modules: false,
+        top_functions: false,
+    };
+    for pass_name in arg.unwrap().split(';') {
+        match pass_name {
+            "modules" => {
+                passes.modules = true;
+                ()
+            }
+            "top_functions" => {
+                passes.top_functions = true;
+                ()
+            }
+            _ => return Err(format!("Unknown pass: {}", pass_name)),
+        }
+    }
+    Ok(passes)
 }
 
 impl App {
@@ -54,6 +80,13 @@ impl App {
                     .help("Path to Lua file")
                     .required(true)
                     .index(2),
+            )
+            .arg(
+                clap::Arg::with_name(args::PASSES)
+                    .short("p")
+                    .long("passes")
+                    .help("Enabled passes")
+                    .takes_value(true),
             )
             .arg(
                 clap::Arg::with_name(args::OUTPUT)
@@ -106,10 +139,7 @@ impl App {
             timeout: clap::value_t!(matches.value_of(args::TIMEOUT), u32).ok(),
             force: matches.is_present(args::FORCE),
             recursive: matches.is_present(args::RECURSIVE),
-            passes: Passes {
-                modules: true,
-                top_functions: true,
-            },
+            passes: parse_passes(matches.value_of(args::PASSES))?,
         })
     }
 }
