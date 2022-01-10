@@ -14,11 +14,11 @@ use wait_timeout::ChildExt;
 #[derive(Debug)]
 pub enum TestOutcome {
     /// Test succeeds
-    PASS,
+    Pass,
     /// Test produced a failure
-    FAIL,
+    Fail,
     /// Test produced intermediate results
-    UNRESOLVED,
+    Unresolved,
 }
 
 impl fmt::Display for TestOutcome {
@@ -51,7 +51,7 @@ pub trait Pass<'a> {
     fn test_nodes(
         &self,
         source_code: &str,
-        removed_nodes: &Vec<TSNode<'a>>,
+        removed_nodes: &[TSNode<'a>],
     ) -> Result<(TestOutcome, String), String> {
         let source = match self.language().remove_nodes(source_code, removed_nodes) {
             Ok(source) => source,
@@ -64,14 +64,13 @@ pub trait Pass<'a> {
     fn test_source(&self, source: &str) -> Result<(TestOutcome, String), String> {
         let temp_file = self.next_temp_file();
         let temp_file = temp_file.as_str();
-        match std::fs::write(temp_file, source) {
-            Err(_) => return Err("Cannot write to file".to_string()),
-            Ok(_) => (),
+        if std::fs::write(temp_file, source).is_err() {
+            return Err("Cannot write to file".to_string());
         };
         let result = run_command(
             self.app().script.as_str(),
             self.app().timeout,
-            vec![&temp_file],
+            vec![temp_file],
         );
         log::debug!("File: {} Result: {}", &temp_file, &result);
         Ok((result, source.to_string()))
@@ -103,14 +102,14 @@ fn run_command(script: &str, timeout: Option<u32>, args: Vec<&str>) -> TestOutco
         match wait(&mut child, timeout) {
             Ok(s) => {
                 if s.success() {
-                    TestOutcome::PASS
+                    TestOutcome::Pass
                 } else {
-                    TestOutcome::FAIL
+                    TestOutcome::Fail
                 }
             }
-            _ => TestOutcome::UNRESOLVED,
+            _ => TestOutcome::Unresolved,
         }
     } else {
-        TestOutcome::UNRESOLVED
+        TestOutcome::Unresolved
     }
 }

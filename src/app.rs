@@ -1,5 +1,3 @@
-use clap;
-
 pub struct Passes {
     pub modules: bool,
     pub top_functions: bool,
@@ -31,7 +29,7 @@ pub struct App {
 
 /// Returns absolute path from the given `path`.
 fn abs_path(path: &str) -> Result<String, String> {
-    if (std::env::consts::OS == "windows" && path.starts_with("\\")) || path.starts_with("/") {
+    if (std::env::consts::OS == "windows" && path.starts_with('\\')) || path.starts_with('/') {
         return Ok(path.to_string());
     };
     match std::fs::canonicalize(path) {

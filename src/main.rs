@@ -19,17 +19,14 @@ fn create_dir(path: &str) -> Result<(), String> {
     }
 }
 
-fn prepare_out_dirs<'a>(app: &app::App, passes: &Vec<impl Pass<'a>>) -> Result<(), String> {
+fn prepare_out_dirs<'a>(app: &app::App, passes: &[impl Pass<'a>]) -> Result<(), String> {
     if path::Path::new(&app.output_dir).exists() {
         if app.force {
-            match fs::remove_dir_all(&app.output_dir) {
-                Err(err) => {
-                    return Err(format!(
-                        "Cannot remove directory '{}': {}",
-                        &app.output_dir, err
-                    ))
-                }
-                Ok(_) => (),
+            if let Err(err) = fs::remove_dir_all(&app.output_dir) {
+                return Err(format!(
+                    "Cannot remove directory '{}': {}",
+                    &app.output_dir, err
+                ));
             }
         } else {
             return Err(format!(
