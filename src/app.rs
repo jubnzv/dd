@@ -1,6 +1,6 @@
 pub struct PassesConfig {
-    pub modules: bool,
-    pub top_functions: bool,
+    pub imports: bool,
+    pub top: bool,
 }
 
 mod args {
@@ -45,19 +45,13 @@ fn parse_passes(arg: Option<&str>) -> Result<PassesConfig, String> {
         return Err("No passes enabled".to_string());
     }
     let mut passes = PassesConfig {
-        modules: false,
-        top_functions: false,
+        imports: false,
+        top: false,
     };
     for pass_name in arg.unwrap().split(';') {
         match pass_name {
-            "modules" => {
-                passes.modules = true;
-                ()
-            }
-            "top_functions" => {
-                passes.top_functions = true;
-                ()
-            }
+            "imports" => passes.imports = true,
+            "top" => passes.top = true,
             _ => return Err(format!("Unknown pass: {}", pass_name)),
         }
     }

@@ -1,10 +1,12 @@
-pub mod pass_imports;
+pub mod imports;
+pub mod top;
 
 use super::app::App;
 use crate::treesitter;
 use std::fmt;
 use std::process::{Child, Command, ExitStatus};
 use std::rc::Rc;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::Duration;
 use tree_sitter::Node as TSNode;
 use wait_timeout::ChildExt;
@@ -27,15 +29,22 @@ impl fmt::Display for TestOutcome {
     }
 }
 
+static COUNTER: AtomicUsize = AtomicUsize::new(1);
+fn get_id() -> usize {
+    COUNTER.fetch_add(1, Ordering::Relaxed)
+}
+
 pub trait Pass<'a> {
+    /// Returns name of this pass.
+    fn name(&self) -> String;
+
     /// Returns absolute path to the temporary file created for this pass.
-    fn next_temp_file(&self) -> String;
+    fn next_temp_file(&self) -> String {
+        return format!("{}/{}", self.temp_dir(), get_id());
+    }
 
     /// Returns temporary directory used by this pass.
     fn temp_dir(&self) -> String;
-
-    /// Returns name of this pass.
-    fn name(&self) -> String;
 
     /// Returns application configuration used by this pass.
     fn app(&self) -> &App;
@@ -45,6 +54,9 @@ pub trait Pass<'a> {
 
     /// Returns tree-sitter parser.
     fn language(&self) -> Rc<dyn treesitter::Parser>;
+
+    /// Executes the pass.
+    fn run(&self) -> Result<String, String>;
 
     /// Returns the result of the execution of the check script. The source code for test will be
     /// generated from the given `source_code`, from which the `removed_nodes` are removed.
