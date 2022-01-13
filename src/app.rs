@@ -64,56 +64,56 @@ impl App {
             .version("1.0")
             .author("Georgiy Komarov <jubnzv@gmail.com>")
             .arg(
-                clap::Arg::with_name(args::SCRIPT)
+                clap::Arg::new(args::SCRIPT)
                     .help("Script that checks failure")
                     .required(true)
                     .index(1),
             )
             .arg(
-                clap::Arg::with_name(args::FILE)
+                clap::Arg::new(args::FILE)
                     .help("Path to Lua file")
                     .required(true)
                     .index(2),
             )
             .arg(
-                clap::Arg::with_name(args::PASSES)
-                    .short("p")
+                clap::Arg::new(args::PASSES)
+                    .short('p')
                     .long("passes")
                     .help("Enabled passes")
                     .takes_value(true),
             )
             .arg(
-                clap::Arg::with_name(args::OUTPUT)
-                    .short("o")
+                clap::Arg::new(args::OUTPUT)
+                    .short('o')
                     .long("output")
                     .help("Path to created temporary directory")
                     .takes_value(true),
             )
             .arg(
-                clap::Arg::with_name(args::TIMEOUT)
-                    .short("t")
+                clap::Arg::new(args::TIMEOUT)
+                    .short('t')
                     .long("timeout")
                     .help("Timeout to execute the script in seconds")
                     .takes_value(true),
             )
             .arg(
-                clap::Arg::with_name(args::FORCE)
-                    .short("f")
+                clap::Arg::new(args::FORCE)
+                    .short('f')
                     .long("force")
                     .help("Remove given temporary directory if exists")
                     .takes_value(false),
             )
             .arg(
-                clap::Arg::with_name(args::RECURSIVE)
-                    .short("r")
+                clap::Arg::new(args::RECURSIVE)
+                    .short('r')
                     .long("recursive")
                     .help("Use the whole directory that contains Lua file")
                     .takes_value(false),
             )
             .arg(
-                clap::Arg::with_name("v")
-                    .short("v")
-                    .multiple(true)
+                clap::Arg::new("v")
+                    .short('v')
+                    .multiple_values(true)
                     .help("Sets the level of verbosity"),
             )
             .get_matches();
@@ -130,7 +130,7 @@ impl App {
                 .value_of(args::OUTPUT)
                 .unwrap_or(defaults::OUTPUT_DIR)
                 .to_string(),
-            timeout: clap::value_t!(matches.value_of(args::TIMEOUT), u32).ok(),
+            timeout: matches.value_of_t(args::TIMEOUT).ok(),
             force: matches.is_present(args::FORCE),
             recursive: matches.is_present(args::RECURSIVE),
             passes: parse_passes(matches.value_of(args::PASSES))?,
