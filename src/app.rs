@@ -11,6 +11,7 @@ mod args {
     pub const TIMEOUT: &str = "TIMEOUT";
     pub const FORCE: &str = "FORCE";
     pub const RECURSIVE: &str = "RECURSIVE";
+    pub const VERBOSE: &str = "VERBOSE";
 }
 
 mod defaults {
@@ -111,9 +112,10 @@ impl App {
                     .takes_value(false),
             )
             .arg(
-                clap::Arg::new("v")
+                clap::Arg::new(args::VERBOSE)
                     .short('v')
                     .multiple_values(true)
+                    .takes_value(true)
                     .help("Sets the level of verbosity"),
             )
             .get_matches();
