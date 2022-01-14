@@ -26,7 +26,7 @@ pub fn ddmin<'a>(
     seq: &[TSNode<'a>],
     pass: &impl Pass<'a>,
 ) -> Result<(Vec<TSNode<'a>>, String), String> {
-    let mut source_code = pass.original_source();
+    let mut source_code = pass.source_code();
     match pass.test_source(&source_code) {
         Ok((TestOutcome::Pass, _)) => {
             return Err("`test` succeeds for the given AST root".to_string())
@@ -48,7 +48,7 @@ pub fn ddmin<'a>(
                 "Testing seq: {:?}",
                 complement
                     .iter()
-                    .map(|n| { crate::treesitter::node_source(&pass.original_source(), n) })
+                    .map(|n| { crate::treesitter::node_source(&pass.source_code(), n) })
                     .collect::<Vec<String>>()
             );
             if let Ok((TestOutcome::Fail, new_source)) = pass.test_nodes(&source_code, &complement)
@@ -58,7 +58,7 @@ pub fn ddmin<'a>(
                 log::debug!(
                     "Reduced seq: {:?} New source: {}",
                     seq.iter()
-                        .map(|n| { crate::treesitter::node_source(&pass.original_source(), n) })
+                        .map(|n| { crate::treesitter::node_source(&pass.source_code(), n) })
                         .collect::<Vec<String>>(),
                     source_code
                 );

@@ -1,3 +1,6 @@
+use derivative::Derivative;
+
+#[derive(Debug, Copy, Clone)]
 pub struct PassesConfig {
     pub imports: bool,
     pub top: bool,
@@ -15,17 +18,44 @@ mod args {
 }
 
 mod defaults {
+    use super::PassesConfig;
+
     pub const OUTPUT_DIR: &str = "/tmp/dd/";
+    pub const PASSES_CONFIG: PassesConfig = PassesConfig {
+        imports: true,
+        top: true,
+    };
 }
 
+#[derive(Derivative)]
+#[derivative(Debug, Default(new = "true"))]
 pub struct App {
+    #[derivative(Default(value = "String::from(\"\")"))]
     /// Absolute path to the script that checks failure.
     pub script: String,
+
+    /// Path to file to be tested.
+    #[derivative(Default(value = "String::from(\"\")"))]
     pub file: String,
+
+    /// Path to the temporary directory created by `dd`.
+    #[derivative(Default(value = "defaults::OUTPUT_DIR.to_string()"))]
     pub output_dir: String,
+
+    /// Timeout to script execution.
+    #[derivative(Default(value = "None"))]
     pub timeout: Option<u32>,
+
+    /// Remove the existent temporary directory if exists.
+    #[derivative(Default(value = "false"))]
     pub force: bool,
+
+    /// Use files in the directory that contains the target file.
+    #[derivative(Default(value = "false"))]
     pub recursive: bool,
+
+    /// Passes to run.
+    #[derivative(Default(value = "defaults::PASSES_CONFIG"))]
     pub passes: PassesConfig,
 }
 
@@ -60,7 +90,7 @@ fn parse_passes(arg: Option<&str>) -> Result<PassesConfig, String> {
 }
 
 impl App {
-    pub fn new() -> Result<App, String> {
+    pub fn from_args() -> Result<App, String> {
         let matches = clap::App::new(env!("CARGO_PKG_NAME"))
             .version("1.0")
             .author("Georgiy Komarov <jubnzv@gmail.com>")

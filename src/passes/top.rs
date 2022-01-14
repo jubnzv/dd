@@ -8,25 +8,16 @@ use std::rc::Rc;
 
 pub struct PassTop<'app> {
     app: &'app App,
-    original_source: String,
-    ts_language: Rc<dyn treesitter::Parser>,
+    source_code: Option<String>,
+    ts_language: Option<Rc<dyn treesitter::Parser>>,
 }
 
 impl<'app> PassTop<'app> {
     pub fn from_app(app: &'app App) -> Result<PassTop, String> {
-        let source_code = match std::fs::read_to_string(&app.file) {
-            Ok(source) => source,
-            Err(err) => return Err(format!("{}", err)),
-        };
-        let lua = match Lua::new(&source_code) {
-            Ok(lua) => lua,
-            Err(err) => return Err(err),
-        };
-        let ts_language = Rc::new(lua);
         Ok(PassTop {
             app,
-            original_source: source_code,
-            ts_language,
+            source_code: None,
+            ts_language: None,
         })
     }
 }
@@ -48,17 +39,20 @@ impl<'app> Pass<'app> for PassTop<'app> {
         self.app
     }
 
-    fn original_source(&self) -> String {
-        self.original_source.clone()
+    fn source_code(&self) -> String {
+        self.source_code.as_ref().unwrap().clone()
     }
 
     fn language(&self) -> Rc<dyn treesitter::Parser> {
-        self.ts_language.clone()
+        self.ts_language.as_ref().unwrap().clone()
     }
 
-    fn run(&self) -> Result<String, String> {
-        let ast_root = self.ts_language.ast_root();
-        let top_nodes = self.ts_language.children(ast_root);
+    fn run(&mut self, source_code: Option<&str>) -> Result<String, String> {
+        self.source_code = Some(self.read_source(source_code)?);
+        self.ts_language = Some(Rc::new(Lua::new(&self.source_code())?));
+        let language = self.language();
+        let ast_root = language.ast_root();
+        let top_nodes = language.children(ast_root);
         log::debug!("Bisecting {} top nodes", top_nodes.len());
         match delta::ddmin(&top_nodes, self) {
             Ok((_, source)) => Ok(source),

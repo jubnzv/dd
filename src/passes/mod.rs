@@ -50,13 +50,14 @@ pub trait Pass<'a> {
     fn app(&self) -> &App;
 
     /// Returns the original source code of the program.
-    fn original_source(&self) -> String;
+    fn source_code(&self) -> String;
 
     /// Returns tree-sitter parser.
     fn language(&self) -> Rc<dyn treesitter::Parser>;
 
-    /// Executes the pass.
-    fn run(&self) -> Result<String, String>;
+    /// Executes the pass. If no `source_code` is given, it will be read from the file specified in
+    /// App configuration. Returns source code reduced by this pass on success.
+    fn run(&mut self, source_code: Option<&str>) -> Result<String, String>;
 
     /// Returns the result of the execution of the check script. The source code for test will be
     /// generated from the given `source_code`, from which the `removed_nodes` are removed.
@@ -86,6 +87,17 @@ pub trait Pass<'a> {
         );
         log::debug!("File: {} Result: {}", &temp_file, &result);
         Ok((result, source.to_string()))
+    }
+
+    /// Reads source code from the argument or from the file specified in the App configuration.
+    fn read_source(&self, source: Option<&str>) -> Result<String, String> {
+        match source {
+            Some(s) => Ok(s.to_string()),
+            None => match std::fs::read_to_string(&self.app().file) {
+                Ok(source) => Ok(source),
+                Err(err) => Err(format!("{}", err)),
+            },
+        }
     }
 }
 

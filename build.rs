@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 fn main() {
     #[cfg(not(any(target_os = "windows", target_os = "macos")))]
-    println!("cargo:rustc-link-lib=static=stdc++");
+    println!("cargo:rustc-link-lib=dylib=stdc++");
 
     let dir: PathBuf = ["third-party", "tree-sitter-lua", "src"].iter().collect();
 

@@ -8,25 +8,16 @@ use std::rc::Rc;
 
 pub struct PassImports<'app> {
     app: &'app App,
-    original_source: String,
-    ts_language: Rc<dyn treesitter::Parser>,
+    source_code: Option<String>,
+    ts_language: Option<Rc<dyn treesitter::Parser>>,
 }
 
 impl<'app> PassImports<'app> {
     pub fn from_app(app: &'app App) -> Result<PassImports, String> {
-        let source_code = match std::fs::read_to_string(&app.file) {
-            Ok(source) => source,
-            Err(err) => return Err(format!("{}", err)),
-        };
-        let lua = match Lua::new(&source_code) {
-            Ok(lua) => lua,
-            Err(err) => return Err(err),
-        };
-        let ts_language = Rc::new(lua);
         Ok(PassImports {
             app,
-            original_source: source_code,
-            ts_language,
+            source_code: None,
+            ts_language: None,
         })
     }
 }
@@ -48,25 +39,28 @@ impl<'app> Pass<'app> for PassImports<'app> {
         self.app
     }
 
-    fn original_source(&self) -> String {
-        self.original_source.clone()
+    fn source_code(&self) -> String {
+        self.source_code.as_ref().unwrap().clone()
     }
 
     fn language(&self) -> Rc<dyn treesitter::Parser> {
-        self.ts_language.clone()
+        self.ts_language.as_ref().unwrap().clone()
     }
 
-    fn run(&self) -> Result<String, String> {
-        let require_nodes = self.ts_language.get_matches(
-            &self.original_source,
-            self.ts_language.imports_query(),
+    fn run(&mut self, source_code: Option<&str>) -> Result<String, String> {
+        self.source_code = Some(self.read_source(source_code)?);
+        self.ts_language = Some(Rc::new(Lua::new(&self.source_code())?));
+        let language = self.language();
+        let require_nodes = language.get_matches(
+            &self.source_code(),
+            self.language().imports_query(),
             Some(|c| c.node.kind() == "function_call"),
         );
         log::debug!(
             "Bisecting import nodes: {:?}",
             require_nodes
                 .iter()
-                .map(|n| { crate::treesitter::node_source(&self.original_source, n) })
+                .map(|n| { crate::treesitter::node_source(&self.source_code(), n) })
                 .collect::<Vec<String>>()
         );
         match delta::ddmin(&require_nodes, self) {
