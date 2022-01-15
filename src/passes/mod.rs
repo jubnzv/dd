@@ -20,7 +20,7 @@ pub enum TestOutcome {
     /// Test produced a failure
     Fail,
     /// Test produced intermediate results
-    Unresolved,
+    Unresolved(String),
 }
 
 impl fmt::Display for TestOutcome {
@@ -122,8 +122,8 @@ fn wait(child: &mut Child, timeout: Option<u32>) -> std::io::Result<ExitStatus> 
 
 /// Executes the given shell command and returns TestOutcome::PASS if it returns 0 return code.
 fn run_command(script: &str, timeout: Option<u32>, args: Vec<&str>) -> TestOutcome {
-    if let Ok(mut child) = Command::new(script).args(&args).spawn() {
-        match wait(&mut child, timeout) {
+    match Command::new(script).args(&args).spawn() {
+        Ok(mut child) => match wait(&mut child, timeout) {
             Ok(s) => {
                 if s.success() {
                     TestOutcome::Pass
@@ -131,9 +131,8 @@ fn run_command(script: &str, timeout: Option<u32>, args: Vec<&str>) -> TestOutco
                     TestOutcome::Fail
                 }
             }
-            _ => TestOutcome::Unresolved,
-        }
-    } else {
-        TestOutcome::Unresolved
+            Err(err) => TestOutcome::Unresolved(err.to_string()),
+        },
+        Err(err) => TestOutcome::Unresolved(err.to_string()),
     }
 }
