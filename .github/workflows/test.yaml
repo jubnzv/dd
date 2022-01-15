@@ -16,7 +16,6 @@ jobs:
         os:
         - ubuntu-latest
         - macos-latest
-        - windows-2016
     runs-on: ${{matrix.os}}
     env:
       RUSTFLAGS: --deny warnings
@@ -44,6 +43,7 @@ jobs:
       run: |
         cargo update --locked --package dd
 
+    # Tests contain platform-specific code
     - name: Test
       run: |
         if [ "$RUNNER_OS" == "Linux" ]; then
