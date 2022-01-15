@@ -120,8 +120,8 @@ impl Parser for Lua {
     }
 
     fn remove_nodes<'a>(&self, source_code: &str, nodes: &[TSNode<'a>]) -> Result<String, String> {
-        // Incrementally parse a AST for the given source code. It will contain positions for nodes
-        // we'll remove.
+        // Incrementally parse an AST for the given source code. It will contain positions for the
+        // nodes we'll remove.
         let mut parser = TSParser::new();
         parser.set_language(self.language).unwrap();
         let current_tree = match parser.parse(source_code, Some(&self.tree)) {
@@ -135,7 +135,7 @@ impl Parser for Lua {
         let mut new_nodes: HashMap<String, TSNode<'_>> = HashMap::new();
         let mut cursor = current_tree.walk();
         for node in current_tree.root_node().children(&mut cursor) {
-            new_nodes.insert(node.to_sexp(), node);
+            new_nodes.insert(node_source(source_code, &node), node);
         }
 
         let nodes_to_remove: HashSet<TSNode<'a>> = HashSet::from_iter(nodes.iter().cloned());
@@ -154,10 +154,10 @@ impl Parser for Lua {
             //     old_end_position: node.end_position(),
             //     new_end_position: node.start_position(),
             // });
-            let new_node = match new_nodes.get(&node.to_sexp()) {
+            let new_node = match new_nodes.get(&node_source(source_code, &node)) {
                 Some(node) => node,
                 None => {
-                    log::error!("Cannot find:\n  '{}'", &node.to_sexp());
+                    log::error!("Cannot find:\n  '{}'", &node_source(source_code, &node));
                     log::error!("Possible values:");
                     for k in new_nodes.into_keys() {
                         log::error!("  '{}'", k);

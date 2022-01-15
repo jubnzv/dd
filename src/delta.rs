@@ -45,18 +45,19 @@ pub fn ddmin<'a>(
             // A complement is a sequence of nodes that will be removed during the test.
             let complement = [&seq[..start], &seq[start + subset_length..]].concat();
             log::debug!(
-                "Testing seq: {:?}",
+                "Testing w/o sequence: {:#?}\nSource: {}",
                 complement
                     .iter()
                     .map(|n| { crate::treesitter::node_source(&pass.source_code(), n) })
-                    .collect::<Vec<String>>()
+                    .collect::<Vec<String>>(),
+                source_code
             );
             if let Ok((TestOutcome::Fail, new_source)) = pass.test_nodes(&source_code, &complement)
             {
                 remove_complement(&mut seq, &complement);
                 source_code = new_source;
                 log::debug!(
-                    "Reduced seq: {:?} New source: {}",
+                    "Reduced sequence: {:#?}\nNew source: {}",
                     seq.iter()
                         .map(|n| { crate::treesitter::node_source(&pass.source_code(), n) })
                         .collect::<Vec<String>>(),

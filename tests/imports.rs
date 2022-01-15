@@ -13,5 +13,5 @@ require(\"mod4\")",
         )
         .script("! grep -q -E \"require\\(\\\"mod2\\\"\\)\" $1")
         .passes("imports")
-        .check("require(\"mod2\")");
+        .check("\nrequire(\"mod2\")");
 }
