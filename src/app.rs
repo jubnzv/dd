@@ -71,7 +71,7 @@ fn abs_path(path: &str) -> Result<String, String> {
 }
 
 /// Returns passes configuraiton based on the given CLI argument content.
-fn parse_passes(arg: Option<&str>) -> Result<PassesConfig, String> {
+pub fn parse_passes(arg: Option<&str>) -> Result<PassesConfig, String> {
     if arg.is_none() {
         return Err("No passes enabled".to_string());
     }
