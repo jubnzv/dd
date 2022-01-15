@@ -12,7 +12,7 @@ mod test_settings {
 pub(crate) struct Test {
     app: App,
     file_tempdir: TempDir,
-    script_tempdir: TempDir,
+    _script_tempdir: TempDir,
 }
 
 impl Test {
@@ -23,7 +23,7 @@ impl Test {
         Test {
             app,
             file_tempdir: tempdir().unwrap(),
-            script_tempdir: tempdir().unwrap(),
+            _script_tempdir: tempdir().unwrap(),
         }
     }
 
@@ -49,6 +49,7 @@ impl Test {
         self
     }
 
+    #[allow(dead_code)]
     pub(crate) fn timeout(mut self, timeout: u32) -> Self {
         self.app.timeout = Some(timeout);
         self
