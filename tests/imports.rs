@@ -9,9 +9,10 @@ fn lua_requires_1() {
             "require(\"mod1\")
 require(\"mod2\")
 require(\"mod3\")
-require(\"mod4\")",
+require(\"mod4\")
+",
         )
         .script("! grep -q -E \"require\\(\\\"mod2\\\"\\)\" $1")
         .passes("imports")
-        .check("\nrequire(\"mod2\")");
+        .check_reduced("require(\"mod2\")");
 }

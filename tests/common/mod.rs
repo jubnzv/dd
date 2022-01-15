@@ -64,10 +64,10 @@ impl Test {
         run_app(&self.app)
     }
 
-    pub(crate) fn check(self, expected: &str) {
+    pub(crate) fn check_reduced(self, expected: &str) {
         match self.run() {
             Err(err) => panic!("Error while running the test: {}", err),
-            Ok(got) => assert_eq!(got, expected),
+            Ok(got) => assert_eq!(got.replace("\n", ""), expected.replace("\n", "")),
         }
     }
 }

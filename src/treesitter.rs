@@ -78,19 +78,28 @@ pub fn node_source(source: &str, node: &TSNode<'_>) -> String {
 pub struct Lua {
     language: TSLanguage,
     tree: TSTree,
+    original_source: String,
 }
 
 impl Lua {
-    pub fn new(source_code: &str) -> Result<Lua, String> {
+    pub fn new<S>(source_code: S) -> Result<Lua, String>
+    where
+        S: Into<String>,
+    {
         let language = unsafe { tree_sitter_lua() };
         let mut parser = TSParser::new();
         // TODO: Set timeout for the parsing
         parser.set_language(language).unwrap();
-        let tree = match parser.parse(source_code, None) {
+        let original_source = source_code.into();
+        let tree = match parser.parse(&original_source, None) {
             Some(tree) => tree,
             None => return Err("Cannot parse the given source".to_string()),
         };
-        Ok(Lua { language, tree })
+        Ok(Lua {
+            language,
+            tree,
+            original_source,
+        })
     }
 }
 
@@ -135,7 +144,7 @@ impl Parser for Lua {
         let mut new_nodes: HashMap<String, TSNode<'_>> = HashMap::new();
         let mut cursor = current_tree.walk();
         for node in current_tree.root_node().children(&mut cursor) {
-            new_nodes.insert(node_source(source_code, &node), node);
+            new_nodes.insert(node_source(&self.original_source, &node), node);
         }
 
         let nodes_to_remove: HashSet<TSNode<'a>> = HashSet::from_iter(nodes.iter().cloned());
@@ -154,10 +163,13 @@ impl Parser for Lua {
             //     old_end_position: node.end_position(),
             //     new_end_position: node.start_position(),
             // });
-            let new_node = match new_nodes.get(&node_source(source_code, &node)) {
+            let new_node = match new_nodes.get(&node_source(&self.original_source, &node)) {
                 Some(node) => node,
                 None => {
-                    log::error!("Cannot find:\n  '{}'", &node_source(source_code, &node));
+                    log::error!(
+                        "Cannot find:\n  '{}'",
+                        &node_source(&self.original_source, &node)
+                    );
                     log::error!("Possible values:");
                     for k in new_nodes.into_keys() {
                         log::error!("  '{}'", k);
