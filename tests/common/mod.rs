@@ -65,6 +65,7 @@ impl Test {
         run_app(&self.app)
     }
 
+    #[allow(dead_code)]
     pub(crate) fn check_reduced(self, expected: &str) {
         match self.run() {
             Err(err) => panic!("Error while running the test: {}", err),
@@ -72,6 +73,7 @@ impl Test {
         }
     }
 
+    #[allow(dead_code)]
     pub(crate) fn check_not_reduced(self) {
         match self.run() {
             Err(Error::NoChange) => (),
