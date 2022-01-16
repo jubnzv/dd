@@ -1,4 +1,5 @@
 use crate::app::App;
+use crate::error::Error;
 use crate::passes::imports::PassImports;
 use crate::passes::top::PassTop;
 use crate::passes::Pass;
@@ -50,18 +51,28 @@ fn prepare_out_dirs<'a>(app: &App, passes: &[PassInst<'a>]) -> Result<(), String
 }
 
 /// Runs application with the given configuration. Returns reduced source on success.
-pub fn run_app<'a>(app: &'a App) -> Result<String, String> {
+pub fn run_app<'a>(app: &'a App) -> Result<String, Error> {
     let mut passes: Vec<PassInst<'a>> = vec![];
     if app.passes.imports {
         match PassImports::from_app(app) {
             Ok(p) => passes.push(Rc::new(RefCell::new(p))),
-            Err(err) => return Err(format!("Cannot initialize PassImports pass: {}", err)),
+            Err(err) => {
+                return Err(Error::new(format!(
+                    "Cannot initialize PassImports pass: {}",
+                    err
+                )))
+            }
         }
     }
     if app.passes.top {
         match PassTop::from_app(app) {
             Ok(p) => passes.push(Rc::new(RefCell::new(p))),
-            Err(err) => return Err(format!("Cannot initialize PassTop pass: {}", err)),
+            Err(err) => {
+                return Err(Error::new(format!(
+                    "Cannot initialize PassTop pass: {}",
+                    err
+                )))
+            }
         }
     }
 
@@ -69,17 +80,21 @@ pub fn run_app<'a>(app: &'a App) -> Result<String, String> {
 
     let mut source: Option<String> = None;
     for p in passes.iter() {
-        source = match source {
-            Some(s) => Some(p.borrow_mut().run(Some(&s))?),
-            None => Some(p.borrow_mut().run(None)?),
+        let result = match &source {
+            Some(s) => p.borrow_mut().run(Some(s)),
+            None => p.borrow_mut().run(None),
         };
-        match &source {
-            Some(s) => log::debug!("Reduced source: {}", s),
-            None => (),
+        match result {
+            Ok(reduced_source) => {
+                log::debug!("Reduced source: {}", &reduced_source);
+                source = Some(reduced_source);
+            }
+            Err(Error::NoChange) => log::debug!("Source code has not been reduced"),
+            Err(err) => return Err(err),
         };
     }
 
-    Ok(source.unwrap())
+    source.ok_or(Error::NoChange)
 }
 
 pub fn run() -> i32 {
@@ -87,15 +102,18 @@ pub fn run() -> i32 {
     let app = match App::from_args() {
         Ok(app) => app,
         Err(err) => {
-            println!("{}", err);
+            eprintln!("{}", err);
             return rc::FAILURE;
         }
     };
-
     match run_app(&app) {
         Ok(_) => rc::SUCCESS,
+        Err(Error::NoChange) => {
+            println!("Cannot reproduce the failure");
+            rc::SUCCESS
+        }
         Err(err) => {
-            println!("{}", err);
+            eprintln!("{}", err);
             rc::FAILURE
         }
     }

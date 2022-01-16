@@ -2,6 +2,7 @@ pub mod imports;
 pub mod top;
 
 use super::app::App;
+use super::error::Error;
 use crate::treesitter;
 use std::fmt;
 use std::process::{Child, Command, ExitStatus};
@@ -57,7 +58,7 @@ pub trait Pass<'a> {
 
     /// Executes the pass. If no `source_code` is given, it will be read from the file specified in
     /// App configuration. Returns source code reduced by this pass on success.
-    fn run(&mut self, source_code: Option<&str>) -> Result<String, String>;
+    fn run(&mut self, source_code: Option<&str>) -> Result<String, Error>;
 
     /// Returns the result of the execution of the check script. The source code for test will be
     /// generated from the given `source_code`, from which the `removed_nodes` are removed.
@@ -65,20 +66,17 @@ pub trait Pass<'a> {
         &self,
         source_code: &str,
         removed_nodes: &[TSNode<'a>],
-    ) -> Result<(TestOutcome, String), String> {
-        let source = match self.language().remove_nodes(source_code, removed_nodes) {
-            Ok(source) => source,
-            Err(err) => return Err(err),
-        };
+    ) -> Result<(TestOutcome, String), Error> {
+        let source = self.language().remove_nodes(source_code, removed_nodes)?;
         self.test_source(&source)
     }
 
     /// Returns the result of the execution of the check script for the source code.
-    fn test_source(&self, source: &str) -> Result<(TestOutcome, String), String> {
+    fn test_source(&self, source: &str) -> Result<(TestOutcome, String), Error> {
         let temp_file = self.next_temp_file();
         let temp_file = temp_file.as_str();
         if std::fs::write(temp_file, source).is_err() {
-            return Err("Cannot write to file".to_string());
+            return Err(Error::new("Cannot write to file"));
         };
         let result = run_command(
             self.app().script.as_str(),
@@ -90,19 +88,17 @@ pub trait Pass<'a> {
     }
 
     /// Reads source code from the argument or from the file specified in the App configuration.
-    fn read_source(&self, source: Option<&str>) -> Result<String, String> {
+    fn read_source(&self, source: Option<&str>) -> Result<String, Error> {
         match source {
             Some(s) => Ok(s.to_string()),
-            None => match std::fs::read_to_string(&self.app().file) {
-                Ok(source) => Ok(source),
-                Err(err) => Err(format!("{}", err)),
-            },
+            None => std::fs::read_to_string(&self.app().file)
+                .map_err(|err| Error::new(format!("{}", err))),
         }
     }
 }
 
 /// Wait wraps over `wait` function implementing timeout logic.
-fn wait(child: &mut Child, timeout: Option<u32>) -> std::io::Result<ExitStatus> {
+fn wait(child: &mut Child, timeout: Option<u32>) -> Result<ExitStatus, std::io::Error> {
     match timeout {
         None => child.wait(),
         Some(timeout) => {

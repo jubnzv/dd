@@ -1,6 +1,7 @@
 use dd::app::parse_passes;
 use dd::app::App;
 use dd::driver::run_app;
+use dd::error::Error;
 use std::fs;
 use std::os::unix::fs::PermissionsExt;
 use tempfile::{tempdir, TempDir};
@@ -60,7 +61,7 @@ impl Test {
         self
     }
 
-    pub(crate) fn run(self) -> Result<String, String> {
+    fn run(self) -> Result<String, Error> {
         run_app(&self.app)
     }
 
@@ -68,6 +69,14 @@ impl Test {
         match self.run() {
             Err(err) => panic!("Error while running the test: {}", err),
             Ok(got) => assert_eq!(got.replace("\n", ""), expected.replace("\n", "")),
+        }
+    }
+
+    pub(crate) fn check_not_reduced(self) {
+        match self.run() {
+            Err(Error::NoChange) => (),
+            Err(err) => panic!("Error while running the test: {}", err),
+            Ok(src) => panic!("Source code has been reduced: {}", src),
         }
     }
 }

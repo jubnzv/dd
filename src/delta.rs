@@ -1,5 +1,6 @@
 //! The delta module contains implementation of the common delta debugging algorithms.
 
+use crate::error::Error;
 use crate::passes::{Pass, TestOutcome};
 use tree_sitter::Node as TSNode;
 
@@ -25,14 +26,12 @@ fn remove_complement<'a>(seq: &mut Vec<TSNode<'a>>, complement: &[TSNode<'a>]) {
 pub fn ddmin<'a>(
     seq: &[TSNode<'a>],
     pass: &impl Pass<'a>,
-) -> Result<(Vec<TSNode<'a>>, String), String> {
+) -> Result<(Vec<TSNode<'a>>, String), Error> {
     let mut source_code = pass.source_code();
     match pass.test_source(&source_code) {
-        Ok((TestOutcome::Pass, _)) => {
-            return Err("`test` succeeds for the given AST root".to_string())
-        }
+        Ok((TestOutcome::Pass, _)) => return Err(Error::NoChange),
         Ok(_) => (),
-        Err(err) => return Err(err),
+        Err(err) => return Err(Error::new(err.to_string())),
     };
 
     let mut granularity = 2;
