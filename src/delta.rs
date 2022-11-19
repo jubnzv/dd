@@ -38,7 +38,7 @@ pub fn ddmin<'a>(
     let mut seq = seq.to_owned();
     while seq.len() >= 2 {
         let mut start: usize = 0;
-        let subset_length: usize = (seq.len() / 2) as usize;
+        let subset_length: usize = seq.len() / 2;
         let mut some_complement_is_failing = false;
         while start < seq.len() {
             // A complement is a sequence of nodes that will be removed during the test.

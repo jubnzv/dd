@@ -16,7 +16,7 @@ pub trait Parser {
     /// Returns name of the language.
     fn name(&self) -> String;
 
-    /// Returns a tree-sitter Language.
+    /// Returns a tree-sitter language.
     fn language(&self) -> &TSLanguage;
 
     /// Returns a tree-sitter tree.

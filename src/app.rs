@@ -150,7 +150,7 @@ impl App {
             )
             .get_matches();
 
-        let script = match abs_path(&matches.value_of(args::SCRIPT).unwrap().to_string()) {
+        let script = match abs_path(matches.value_of(args::SCRIPT).unwrap()) {
             Ok(path) => path,
             Err(err) => return Err(err),
         };
